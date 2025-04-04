@@ -6,7 +6,7 @@ masterblaster builds centraxx stammdaten xml from yaml for sampletype
 usage:
 
 ```
-cat try/sample-type-nsn.yaml | masterblaster sampletype > sample-types.xml
+cat try/sampletype-fmt.yaml | masterblaster sampletype > sample-types.xml
 ```
 
 for options, see `masterblaster -h`.
