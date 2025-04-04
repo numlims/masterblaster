@@ -1,0 +1,560 @@
+# main.ct: the command line interface (and the rest til now)
+
+## file structure
+
+``//__main__.py:
+
+``import``
+
+``main``
+``sampletype``
+``messparam``
+``messprofil``
+``data-exchange``
+``multilingual``
+``boolstring``
+
+sys.exit(main())
+``
+
+import for __main__
+
+``/import:
+import sys
+``
+
+## main
+
+main offers the command-line interface.
+
+``/main:
+def main():
+  ``.``
+``
+
+parse arguments.
+
+``
+  parser = argparse.ArgumentParser(description="generate stammdaten xml")
+  parser.add_argument("what", help="sampletype|messparam|messprofil")
+  # parser.add_argument("--yaml", help="read yaml", required=False)
+  parser.add_argument("--db", help="db target", required=False)
+  args = parser.parse_args()
+``
+
+read the data.
+
+``
+  #yamlfile = "try/sample-type-nsn.yaml"
+  #with open(yamlfile, "r") as file:
+  #   data = yaml.safe_load(file)
+  data = yaml.safe_load(sys.stdin)
+``
+
+if db given, connect.
+
+``
+  db = None
+  if args.db:
+    db = dbcq(args.db)
+``
+
+build what is wished.
+
+``
+  e = None
+  if args.what == "sampletype":
+    e = sampletype(data)
+  if args.what == "messparam":
+    if db == None:
+      print("error: messparam needs --db flag")
+      exit
+    e = messparam(data, db)
+  if args.what == "messprofil":
+    if db == None:
+      print("error: messprofil needs --db flag")
+      exit
+    e = messprofil(data, db)
+``
+
+print the xml.
+
+``
+  if e != None:
+    print(tostring(e, xml_declaration=True, encoding='utf-8', pretty_print=True).decode())
+``
+
+imports for main.
+
+``/import
+import yaml
+import argparse
+from dbcq import dbcq
+``
+
+## sampletype
+
+sampletype builds sampletype (probenart) xml.
+
+``/sampletype:
+def sampletype(data):
+  ``.``
+``
+
+xml building with E works like this:
+
+E.MyElement("hello", name="my name")
+
+renders to
+
+<MyElement name="my name">hello</MyElement>
+
+open the xml element.
+
+``
+  catalogue_data = E.CatalogueData()
+``
+
+put in the data.
+
+``
+  for d in data:
+    # the hold-all
+    item = E.SampleTypeCatalogueItem()
+
+    # english name
+    item.append(multilingual("en", d["name_en"]))
+
+    # german name
+    item.append(multilingual("de", d["name_de"]))
+
+    # code
+    item.append(E.Code(d["code"]))
+
+    # kind
+    item.append(E.Kind(d["kind"]))
+
+    # sprec code
+    item.append(E.SprecCode(d["sprec_code"]))
+
+    # material todo fetch code from cxx
+    item.append(E.MaterialCode(str(d["material_code"])))
+
+    catalogue_data.append(item)
+``
+
+wrap and return.
+
+``
+  return data_exchange(catalogue_data)
+``
+
+imports for sampletype.
+
+``/import
+from lxml.etree import tostring
+from lxml.builder import E
+from datetime import datetime
+``
+
+## messparam
+
+messparam builds messparameter xml.
+
+``/messparam:
+def messparam(data, db):
+  ``.``
+``
+
+pull the names for 'kontrolliertes vokabular' and groups from db, for later use.
+
+``
+  tr = traction(db)
+  vocab_by_code = tr.names_by_codes("usageentry", "de")
+  groupname_by_code = tr.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
+``
+
+loop over the given params and put each in a Flexible*Value.  wrap the
+Flexible*Values with a FlexibleValueCatalogItem.
+
+``
+  item = E.FlexibleValueCatalogueItem()
+  for param in data:
+    ``.``
+``
+
+depending on the param type create the xml Flexible*Value.
+
+this is an approximate mapping of types to Flexible*Value:
+
+string: FlexibleStringValue
+long-string: FlexibleLongStringValue
+decimal: FlexibleDecimalValue
+integer: FlexibleIntegerValue
+boolean: FlexibleBooleanValue
+date: FlexibleDateValue
+long-date: FlexibleLongDateValue
+
+enumeration: FlexibleEnumerationValue
+  select: ChoiseType
+    one: SELECTONE | many: SELECTMANY
+  options <list>: UsageEntryTypeRef
+
+catalog: FlexibleCatalogValue
+  select: ChoiseType
+    one: SELECTONE | many: SELECTMANY
+  catalog: UserDefinedCatalogRef
+    <string>: Code
+
+optiongroup: FlexibleOptionGroupValue
+  select: ChoiseType
+    one: SELECTONE | many: SELECTMANY
+  options: <list>
+
+
+``
+    kind = param["type"]
+    if kind == "string":
+      e = E.FlexibleStringValue()
+    elif kind == "long-string":
+      e = E.FlexibleLongStringValue()
+    elif kind == "decimal":
+      e = E.FlexibleDecimalValue()
+    elif kind == "integer":
+      e = E.FlexibleIntegerValue()
+    elif kind == "boolean":
+      e = E.FlexibleBooleanValue()
+    elif kind == "date":
+      e = E.FlexibleDateValue()
+    elif kind == "long-date":
+      e = E.FlexibleLongDateValue()
+    elif kind == "enumeration":
+      e = E.FlexibleEnumerationValue()
+    elif kind == "optiongroup":
+      e = E.FlexibleOptionGroupValue()
+    elif kind == "catalog":
+      e = E.FlexibleCatalogValue()
+    else:
+      print(f"error: type {kind} not recognized.")
+      exit
+``
+
+put the newly created element into the xml tree.
+
+``
+    item.append(e)
+``
+
+set the code and the names.
+
+``
+    e.append(E.Code(param["code"]))
+    name_en = param["name-en"] if "name-en" in param else param["code"]
+    e.append(multilingual("en", name_en))
+    name_de = param["name-de"] if "name-de" in param else name_en
+    e.append(multilingual("de", name_de))
+``
+
+if given, add a group.
+
+``
+    if "group" in param:
+      displayname = groupname_by_code[param[group]]
+      e.append(E.LaborValueGroupRef(param["group"]), DisplayName=displayname)
+``
+
+say it's systemwide.
+
+``
+    e.append(E.UserEntries(E.Systemwide("true")))
+``
+
+build the optional elements.
+
+select one or many applies to enumeration, catalog or optiongroup.
+
+``
+    if kind == "enumeration" or kind == "catalog" or kind == "optiongroup":
+      if not "select" in param:
+        print(f"error: kind {kind} needs a 'select' field with 'one' or 'many'")
+        exit
+      if param["select"] == "many":
+        choicetype = "SELECTMANY"
+      if param["select"] == "one":
+        choicetype = "SELECTONE"
+      e.append(E.ChoiseType(choicetype)) # sic ChoiseType
+``
+
+a list of options applies to enumeration or optiongroup.  pull the
+display names from the vocabulary we fetched before.
+
+``
+    if kind == "enumeration" or kind == "optiongroup":
+      if not "options" in param:
+        print(f"error: kind {kind} needs an 'options' field with a list of option codes.")
+        exit
+      for option in param["options"]:
+        displayname = vocab_by_code[option]
+        e.append(E.UsageEntryTypeRef(option, DisplayName=displayname))
+``
+
+catalog applies to catalog kind.
+
+``
+    if kind == "catalog":
+      if not "catalog" in param:
+        print(f"error: kind {kind} needs a 'catalog' field with its catalog code.")
+        exit
+      if not "catalog-version" in param:
+        print(f"error: kind {kind} needs a 'catalog-version' field with the catalog version.")
+        exit
+
+      e.append(E.UserDefinedCatalogRef(E.Code(param["catalog"]), E.Version(param["catalog-version"])))
+``
+
+
+exit the param-building loop, wrap and return.
+
+``../
+  return data_exchange(E.CatalogueData(item))
+``
+
+
+## messprofil
+
+messprofil builds messprofil xml.
+
+the first half of the xml are FlexibleDatasetCatalogueItem(s), one for each messprofil. they contain the messparams. each FlexibleDatasetCatalogueItem references a CrfTemplate. CrfTemplates come in the second half of the xml. they contain the layout with which the messparams are displayed.
+
+``/messprofil:
+def messprofil(data, db:dbcq):
+  catalogue_data = E.CatalogueData()
+  ``.``
+  return data_exchange(catalogue_data)
+``
+
+get the names for messparameters, for later use.
+
+``
+  tr = traction(db)
+  param_names_de = tr.names_by_codes("laborvalue", "de")
+``
+
+loop over the profiles in the data.
+
+``
+  for profil in data:
+    ``.``
+``
+
+### a FlexibleDatasetCatalogueItem for each messprofil
+
+first build the FlexibleDatasetCatalogueItems connecting each messprofil with its messparameters.
+
+``
+    item = E.FlexibleDataSetCatalogueItem()
+``
+
+put in the code and names.
+
+``
+    item.append(E.Code(profil["code"]))
+    item.append(multilingual("en", profil["name_en"]))
+    item.append(multilingual("de", profil["name_de"]))
+``
+
+put in the params.  we need the sections only for layout.
+
+``
+    for section in profil["sections"]:
+      for param in section["params"]:
+        ``.``
+``
+
+the param is apparently rendered as a flexible ref to a complex value.
+
+``
+        flexref = E.FlexibleValueComplexRefs()
+        item.append(flexref)
+``
+
+centraxx apparently puts in the german display name of the param.
+
+``
+        flexref.append(E.FlexibleValueRef(param["code"], DisplayName=param_names_de[param["code"]])) 
+``
+
+required is standard false.
+
+``
+        required = param["required"] if "required" in param else False
+        flexref.append(E.Required(boolstring(required)))
+``
+
+finished putting in the params.
+
+say it's systemwide, a measurement and in category general. todo
+what's needed of that?
+
+``../
+    item.append(E.Systemwide("true"))
+    item.append(E.FlexibleDataSetType("MEASUREMENT"))
+    item.append(E.Category("GENERAL"))
+``
+
+now give a reference to the layout of the messparams, called crf
+template.  it's named by the german display name, we create this in
+the second part.
+
+the crf template ref apparently needs a version, we try to pass 1.
+
+``
+    templateref = E.CrfTemplateRef()
+    templateref.append(E.Name(profil["name_de"]))
+    templateref.append(E.Version("1"))
+    item.append(templateref)
+``
+
+append the item.
+
+``
+    catalogue_data.append(item)
+``
+
+### a CrfTemplate for each messprofil
+
+now build a CrfTemplate for each messprofil, containing the layout
+with which the profile's messparams are displayed.
+
+we make it as simple as possible, a list of rows.
+
+the crf template seems to get the german name of the messprofil.
+
+``
+    crf_template = E.CrfTemplate()
+    crf_template.append(E.Name(profil["name_de"]))
+``
+
+build the sections as given in the yaml.
+
+``
+    for i_section, section in enumerate(profil["sections"]):
+      crfsection = E.CrfTemplateSection()
+      crf_template.append(crfsection)
+      ``.``
+``
+
+fill in the name and the code of the section.
+
+``
+      # take the code as the general name?
+      crfsection.append(E.Name(section["code"]))
+      crfsection.append(multilingual("en", section["name_en"]))
+      crfsection.append(multilingual("de", section["name_de"]))
+      crfsection.append(E.Code(section["code"]))
+``
+
+put in the parameters that are in the section.
+
+``
+      for i, param in enumerate(section["params"]):
+        field = E.CrfTemplateField()
+
+        # the display name german?
+        field.append(E.LaborValue(param["code"], DisplayName=param_names_de[param["code"]]))
+
+        field.append(E.LowerRow(str(i)))
+        # we don't do columns, just set 0
+        field.append(E.LowerColumn(str(0)))
+
+        # what's the difference between lower and upper row?
+        field.append(E.UpperRow(str(i)))
+        field.append(E.UpperColumn(str(0)))
+
+        # todo what's needed of these?
+        field.append(E.Mandatory("false"))
+        field.append(E.VisibleCaption("true"))
+
+        field.append(E.FieldType("LABORVALUE"))
+
+        # todo what's needed of these?
+        field.append(E.TabIndex("0"))
+        field.append(E.ReadOnly("false"))
+
+        crfsection.append(field)
+      
+      ``.``
+``
+
+give the section a standard width one, cause we only do a list.  give
+it as height the count of included messparams.
+
+``
+      n = len(section["params"])
+      crfsection.append(E.Height(str(n)))
+      crfsection.append(E.Width(str(1)))
+      
+      crfsection.append(E.Position(str(i_section)))
+      
+      # todo needed?
+      crfsection.append(E.CrfSectionType("PLAIN"))
+      crfsection.append(E.IsChangeable("true"))
+``
+
+after the section build loop, give the CrfTemplate a labormethod type
+and a version. the version needs to correspond to the version given in
+the CrfTemplateRef referencing this CrfTemplate. add the CrfTemplate
+to the CatalogData.
+
+``../
+    crf_template.append(E.TemplateType("LABORMETHOD"))
+    crf_template.append(E.Version("1")) # same version as in CrfTemplateRef
+    catalogue_data.append(crf_template)
+``
+imports for messprofil
+
+``/import
+from traction import traction
+``
+
+
+
+## helper functions
+
+dataexchange generates the xml root.
+
+``/data-exchange:
+def data_exchange(child):
+  ``.``
+``
+
+fill it and put in the child.
+
+``
+  dataexchange = E.CentraXXDataExchange()
+  dataexchange.attrib['xmlns'] = "http://www.kairos-med.de"
+  dataexchange.append(E.Source("CENTRAXX"))
+  dataexchange.append(E.SourceVersion("3.18.3.16"))
+  dataexchange.append(E.ExportDate(datetime.now().astimezone().isoformat())) 
+  dataexchange.append(child)
+  return dataexchange
+``
+
+multilingual stitches together a multilingual entry.
+
+``/multilingual:
+def multilingual(lang, value):
+  e = E.NameMultilingualEntries()
+  e.append(E.Lang(lang))
+  e.append(E.Value(value))
+  return e
+``
+
+boolstring turns a boolean to a string.
+
+``/boolstring:
+def boolstring(b:bool):
+  if not b:
+    return "false"
+  return "true"
+``

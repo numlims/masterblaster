@@ -1,0 +1,26 @@
+# messprofil-fmt.yaml contains the format for the messprofil yaml
+
+# a list of messprofils
+
+-
+  # the messprofil code
+  code: MY_MESSPROFIL
+  # the german name
+  name_de: Mein Messprofil
+  # the english name
+  name_en: My Measurement Profile
+
+  # the sections that structure the messparams
+  sections:
+    -
+      # the section code
+      code: MY_SECTION_CODE
+      # the german name
+      name_de: Meine Section
+      # the english name
+      name_en: My Section
+      # the messparams
+      params:
+        # the messparam code
+        - code: MY_MESSPARAM
+        - code: ANOTHER_MESSPARAM

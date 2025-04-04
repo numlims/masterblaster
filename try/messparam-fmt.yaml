@@ -1,0 +1,32 @@
+# messparam-fmt.yaml contains the layout for messparameter yaml
+
+# a list of messparameters
+
+-
+  # the code
+  code: MY_CODE
+  
+  # the english display name, if none, code taken
+  name-en: My English Name
+
+  # the german display name, if none, name-en taken
+  name-de: Mein Deutscher Name
+  
+  # type optional, if not given, 'string' assumed
+  type: string|long-string|decimal|integer|boolean|date|long-date|enumeration|catalog|optiongroup
+
+  # group is optional 
+  group: MY_GROUP_CODE
+
+  # select (for enumeration, catalog and optiongroup)
+  select: one|many
+
+  # options (for enumeration and optiongroup)
+  options:  
+    - AN_OPTION_CODE
+    - ANOTHER_OPTION_CODE
+
+  # catalog (for catalog)
+  catalog: A_CATALOG_CODE
+  catalog-version: 1
+

@@ -1,0 +1,16 @@
+# sampletype-fmt.yaml contains the format for the sampletype (probenart) yaml
+
+# a list of probearten
+-
+  # english name
+  name_en: My Sampletype
+  # german name
+  name_en: Meine Probenvorlage
+  # code
+  code: MY_SAMPLETYPE
+  # kind
+  kind: LIQUID
+  # sprec code
+  sprec_code: ZZZ
+  # material code
+  material_code: 69
