@@ -1,12 +1,12 @@
 # masterblaster
 
 masterblaster builds centraxx stammdaten xml from yaml for sampletype
-(probenart), messparameters and messprofil.
+(probenart), laborvalue (messparameter) and labormethod (messprofil).
 
 usage:
 
 ```
-cat try/sampletype-fmt.yaml | masterblaster sampletype > sample-types.xml
+cat fmt/sampletype-fmt.yaml | masterblaster sampletype > sample-types.xml
 ```
 
 for options, see `masterblaster -h`.
@@ -15,19 +15,19 @@ for options, see `masterblaster -h`.
 
 option: `sampletype`.
 
-format in `try/sampletype-fmt.yaml`.
+format in `fmt/sampletype-fmt.yaml`.
 
-## messparameter
+## labval (messparameter)
 
 option: `messparam`.
 
-format in `try/messparam-fmt.yaml`.
+format in `fmt/messparam-fmt.yaml`.
 
-## messprofil
+## method (messprofil)
 
 option: `messprofil`.
 
-format in `try/messprofil-fmt.yaml`.
+format in `fmt/messprofil-fmt.yaml`.
 
 
 ## dev
@@ -39,9 +39,8 @@ cd masterblaster
 ct main.ct
 ```
 
-there is also a [vscode
-plugin](https://marketplace.visualstudio.com/items?itemName=tnustrings.codetext)
-for ct.
+in the [vscode
+plugin](https://marketplace.visualstudio.com/items?itemName=tnustrings.codetext) use `ct: assemble`.
 
 build:
 

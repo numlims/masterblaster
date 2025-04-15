@@ -1,6 +1,6 @@
-# main.ct: the command line interface (and the rest til now)
+main.ct holds the command line interface (and the rest til now)
 
-## file structure
+# file structure
 
 ``//__main__.py:
 
@@ -23,7 +23,7 @@ import for __main__
 import sys
 ``
 
-## main
+# main
 
 main offers the command-line interface.
 
@@ -92,7 +92,7 @@ import argparse
 from dbcq import dbcq
 ``
 
-## sampletype
+# sampletype
 
 sampletype builds sampletype (probenart) xml.
 
@@ -101,13 +101,17 @@ def sampletype(data):
   ``.``
 ``
 
-xml building with E works like this:
+xml building with `E` works like this:
 
+`
 E.MyElement("hello", name="my name")
+`
 
 renders to
 
+`
 <MyElement name="my name">hello</MyElement>
+`
 
 open the xml element.
 
@@ -157,7 +161,7 @@ from lxml.builder import E
 from datetime import datetime
 ``
 
-## messparam
+# messparam
 
 messparam builds messparameter xml.
 
@@ -166,16 +170,17 @@ def messparam(data, db):
   ``.``
 ``
 
-pull the names for 'kontrolliertes vokabular' and groups from db, for later use.
+get the names for 'kontrolliertes vokabular' and groups from db, for
+later use.
 
 ``
-  tr = traction(db)
-  vocab_by_code = tr.names_by_codes("usageentry", "de")
-  groupname_by_code = tr.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
+  trac = tr.traction(db)
+  vocab_by_code = trac.names_by_codes("usageentry", "de")
+  groupname_by_code = trac.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
 ``
 
-loop over the given params and put each in a Flexible*Value.  wrap the
-Flexible*Values with a FlexibleValueCatalogItem.
+loop over the given params and put each in a `Flexible*Value`.  wrap the
+`Flexible*Values` with a `FlexibleValueCatalogItem`.
 
 ``
   item = E.FlexibleValueCatalogueItem()
@@ -183,10 +188,11 @@ Flexible*Values with a FlexibleValueCatalogItem.
     ``.``
 ``
 
-depending on the param type create the xml Flexible*Value.
+depending on the param type create the xml `Flexible*Value`.
 
-this is an approximate mapping of types to Flexible*Value:
+this is an approximate mapping of types in the yaml to `Flexible*Value`:
 
+`
 string: FlexibleStringValue
 long-string: FlexibleLongStringValue
 decimal: FlexibleDecimalValue
@@ -210,10 +216,20 @@ optiongroup: FlexibleOptionGroupValue
   select: ChoiseType
     one: SELECTONE | many: SELECTMANY
   options: <list>
+`
 
+if no type given, take string.
 
 ``
-    kind = param["type"]
+    if not "type" in param:
+      kind = "string"
+    else:
+      kind = param["type"]
+``
+
+map from the type given in the yaml to their xml tag names.
+
+``
     if kind == "string":
       e = E.FlexibleStringValue()
     elif kind == "long-string":
@@ -263,7 +279,7 @@ if given, add a group.
       e.append(E.LaborValueGroupRef(param["group"]), DisplayName=displayname)
 ``
 
-say it's systemwide.
+say that it's systemwide.
 
 ``
     e.append(E.UserEntries(E.Systemwide("true")))
@@ -320,11 +336,15 @@ exit the param-building loop, wrap and return.
 ``
 
 
-## messprofil
+# messprofil
 
 messprofil builds messprofil xml.
 
-the first half of the xml are FlexibleDatasetCatalogueItem(s), one for each messprofil. they contain the messparams. each FlexibleDatasetCatalogueItem references a CrfTemplate. CrfTemplates come in the second half of the xml. they contain the layout with which the messparams are displayed.
+the first half of the xml are `FlexibleDatasetCatalogueItem(s)`, one for
+each messprofil. they contain the messparams. each
+`FlexibleDatasetCatalogueItem` references a `CrfTemplate`. `CrfTemplates`
+come in the second half of the xml. they contain the layout with which
+the messparams are displayed.
 
 ``/messprofil:
 def messprofil(data, db:dbcq):
@@ -336,8 +356,8 @@ def messprofil(data, db:dbcq):
 get the names for messparameters, for later use.
 
 ``
-  tr = traction(db)
-  param_names_de = tr.names_by_codes("laborvalue", "de")
+  trac = tr.traction(db)
+  param_names_de = trac.names_by_codes("laborvalue", "de")
 ``
 
 loop over the profiles in the data.
@@ -347,9 +367,9 @@ loop over the profiles in the data.
     ``.``
 ``
 
-### a FlexibleDatasetCatalogueItem for each messprofil
+## a FlexibleDatasetCatalogueItem for each messprofil
 
-first build the FlexibleDatasetCatalogueItems connecting each messprofil with its messparameters.
+first build the `FlexibleDatasetCatalogueItems` connecting each messprofil with its messparameters.
 
 ``
     item = E.FlexibleDataSetCatalogueItem()
@@ -402,11 +422,12 @@ what's needed of that?
     item.append(E.Category("GENERAL"))
 ``
 
-now give a reference to the layout of the messparams, called crf
-template.  it's named by the german display name, we create this in
-the second part.
+now give a reference to the crf-template layout of the messparams, a
+`CrfTemplateRef`.  it's named by the german display name, we create
+this in the second part.
 
-the crf template ref apparently needs a version, we try to pass 1.
+the version needs to correspond to the version given later to the
+referenced `CrfTemplate`.
 
 ``
     templateref = E.CrfTemplateRef()
@@ -421,9 +442,9 @@ append the item.
     catalogue_data.append(item)
 ``
 
-### a CrfTemplate for each messprofil
+## a CrfTemplate for each messprofil
 
-now build a CrfTemplate for each messprofil, containing the layout
+now build a `CrfTemplate` for each messprofil, containing the layout
 with which the profile's messparams are displayed.
 
 we make it as simple as possible, a list of rows.
@@ -501,25 +522,25 @@ it as height the count of included messparams.
       crfsection.append(E.IsChangeable("true"))
 ``
 
-after the section build loop, give the CrfTemplate a labormethod type
+after the section build loop, give the `CrfTemplate` a labormethod type
 and a version. the version needs to correspond to the version given in
-the CrfTemplateRef referencing this CrfTemplate. add the CrfTemplate
-to the CatalogData.
+the `CrfTemplateRef` referencing this `CrfTemplate`. add the `CrfTemplate`
+to the `CatalogData`.
 
 ``../
     crf_template.append(E.TemplateType("LABORMETHOD"))
     crf_template.append(E.Version("1")) # same version as in CrfTemplateRef
     catalogue_data.append(crf_template)
 ``
-imports for messprofil
+imports for messprofil.
 
 ``/import
-from traction import traction
+import tr
 ``
 
 
 
-## helper functions
+# helper functions
 
 dataexchange generates the xml root.
 

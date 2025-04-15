@@ -6,7 +6,7 @@ from dbcq import dbcq
 from lxml.etree import tostring
 from lxml.builder import E
 from datetime import datetime
-from traction import traction
+import tr
 
 def main():
   parser = argparse.ArgumentParser(description="generate stammdaten xml")
@@ -63,12 +63,15 @@ def sampletype(data):
     catalogue_data.append(item)
   return data_exchange(catalogue_data)
 def messparam(data, db):
-  tr = traction(db)
-  vocab_by_code = tr.names_by_codes("usageentry", "de")
-  groupname_by_code = tr.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
+  trac = tr.traction(db)
+  vocab_by_code = trac.names_by_codes("usageentry", "de")
+  groupname_by_code = trac.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
   item = E.FlexibleValueCatalogueItem()
   for param in data:
-    kind = param["type"]
+    if not "type" in param:
+      kind = "string"
+    else:
+      kind = param["type"]
     if kind == "string":
       e = E.FlexibleStringValue()
     elif kind == "long-string":
@@ -130,8 +133,8 @@ def messparam(data, db):
   return data_exchange(E.CatalogueData(item))
 def messprofil(data, db:dbcq):
   catalogue_data = E.CatalogueData()
-  tr = traction(db)
-  param_names_de = tr.names_by_codes("laborvalue", "de")
+  trac = tr.traction(db)
+  param_names_de = trac.names_by_codes("laborvalue", "de")
   for profil in data:
     item = E.FlexibleDataSetCatalogueItem()
     item.append(E.Code(profil["code"]))
