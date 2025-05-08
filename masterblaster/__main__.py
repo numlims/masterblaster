@@ -144,7 +144,12 @@ def messprofil(data, db:dbcq):
       for param in section["params"]:
         flexref = E.FlexibleValueComplexRefs()
         item.append(flexref)
-        flexref.append(E.FlexibleValueRef(param["code"], DisplayName=param_names_de[param["code"]])) 
+        displayname = ""
+        if param["code"] in param_names_de:
+          displayname = param_names_de[param["code"]]
+        else:
+          displayname = param["code"]
+        flexref.append(E.FlexibleValueRef(param["code"], DisplayName=displayname))
         required = param["required"] if "required" in param else False
         flexref.append(E.Required(boolstring(required)))
     item.append(E.Systemwide("true"))
@@ -169,7 +174,8 @@ def messprofil(data, db:dbcq):
         field = E.CrfTemplateField()
 
         # the display name german?
-        field.append(E.LaborValue(param["code"], DisplayName=param_names_de[param["code"]]))
+        displayname = param_names_de[param["code"]] if param["code"] in param_names_de else param["code"]
+        field.append(E.LaborValue(param["code"], DisplayName=displayname))
 
         field.append(E.LowerRow(str(i)))
         # we don't do columns, just set 0

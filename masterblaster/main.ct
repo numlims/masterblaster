@@ -2,7 +2,7 @@ main.ct holds the command line interface (and the rest til now)
 
 # file structure
 
-``//__main__.py:
+``//__main__.py: #py
 
 ``import``
 
@@ -19,7 +19,7 @@ sys.exit(main())
 
 import for __main__
 
-``/import:
+``/import: #py
 import sys
 ``
 
@@ -27,14 +27,14 @@ import sys
 
 main offers the command-line interface.
 
-``/main:
+``/main: #py
 def main():
   ``.``
 ``
 
 parse arguments.
 
-``
+`` #py
   parser = argparse.ArgumentParser(description="generate stammdaten xml")
   parser.add_argument("what", help="sampletype|messparam|messprofil")
   # parser.add_argument("--yaml", help="read yaml", required=False)
@@ -44,7 +44,7 @@ parse arguments.
 
 read the data.
 
-``
+`` #py
   #yamlfile = "try/sample-type-nsn.yaml"
   #with open(yamlfile, "r") as file:
   #   data = yaml.safe_load(file)
@@ -53,7 +53,7 @@ read the data.
 
 if db given, connect.
 
-``
+`` #py
   db = None
   if args.db:
     db = dbcq(args.db)
@@ -61,7 +61,7 @@ if db given, connect.
 
 build what is wished.
 
-``
+`` #py
   e = None
   if args.what == "sampletype":
     e = sampletype(data)
@@ -79,14 +79,14 @@ build what is wished.
 
 print the xml.
 
-``
+`` #py
   if e != None:
     print(tostring(e, xml_declaration=True, encoding='utf-8', pretty_print=True).decode())
 ``
 
 imports for main.
 
-``/import
+``/import #py
 import yaml
 import argparse
 from dbcq import dbcq
@@ -96,7 +96,7 @@ from dbcq import dbcq
 
 sampletype builds sampletype (probenart) xml.
 
-``/sampletype:
+``/sampletype: #py
 def sampletype(data):
   ``.``
 ``
@@ -113,15 +113,15 @@ renders to
 <MyElement name="my name">hello</MyElement>
 `
 
-open the xml element.
+open the CatalogueData element.
 
-``
+`` #py
   catalogue_data = E.CatalogueData()
 ``
 
-put in the data.
+put in name, code, kind, etc.
 
-``
+`` #py
   for d in data:
     # the hold-all
     item = E.SampleTypeCatalogueItem()
@@ -149,13 +149,13 @@ put in the data.
 
 wrap and return.
 
-``
+`` #py
   return data_exchange(catalogue_data)
 ``
 
 imports for sampletype.
 
-``/import
+``/import #py
 from lxml.etree import tostring
 from lxml.builder import E
 from datetime import datetime
@@ -165,7 +165,7 @@ from datetime import datetime
 
 messparam builds messparameter xml.
 
-``/messparam:
+``/messparam: #py
 def messparam(data, db):
   ``.``
 ``
@@ -173,7 +173,7 @@ def messparam(data, db):
 get the names for 'kontrolliertes vokabular' and groups from db, for
 later use.
 
-``
+`` #py
   trac = tr.traction(db)
   vocab_by_code = trac.names_by_codes("usageentry", "de")
   groupname_by_code = trac.names_by_codes("laborvaluegroup", "de", ml_table="labval_grp_ml_name")
@@ -182,7 +182,7 @@ later use.
 loop over the given params and put each in a `Flexible*Value`.  wrap the
 `Flexible*Values` with a `FlexibleValueCatalogItem`.
 
-``
+`` #py
   item = E.FlexibleValueCatalogueItem()
   for param in data:
     ``.``
@@ -220,7 +220,7 @@ optiongroup: FlexibleOptionGroupValue
 
 if no type given, take string.
 
-``
+`` #py
     if not "type" in param:
       kind = "string"
     else:
@@ -229,7 +229,7 @@ if no type given, take string.
 
 map from the type given in the yaml to their xml tag names.
 
-``
+`` #py
     if kind == "string":
       e = E.FlexibleStringValue()
     elif kind == "long-string":
@@ -257,13 +257,13 @@ map from the type given in the yaml to their xml tag names.
 
 put the newly created element into the xml tree.
 
-``
+`` #py
     item.append(e)
 ``
 
 set the code and the names.
 
-``
+`` #py
     e.append(E.Code(param["code"]))
     name_en = param["name-en"] if "name-en" in param else param["code"]
     e.append(multilingual("en", name_en))
@@ -273,7 +273,7 @@ set the code and the names.
 
 if given, add a group.
 
-``
+`` #py
     if "group" in param:
       displayname = groupname_by_code[param[group]]
       e.append(E.LaborValueGroupRef(param["group"]), DisplayName=displayname)
@@ -281,7 +281,7 @@ if given, add a group.
 
 say that it's systemwide.
 
-``
+`` #py
     e.append(E.UserEntries(E.Systemwide("true")))
 ``
 
@@ -289,7 +289,7 @@ build the optional elements.
 
 select one or many applies to enumeration, catalog or optiongroup.
 
-``
+`` #py
     if kind == "enumeration" or kind == "catalog" or kind == "optiongroup":
       if not "select" in param:
         print(f"error: kind {kind} needs a 'select' field with 'one' or 'many'")
@@ -304,7 +304,7 @@ select one or many applies to enumeration, catalog or optiongroup.
 a list of options applies to enumeration or optiongroup.  pull the
 display names from the vocabulary we fetched before.
 
-``
+`` #py
     if kind == "enumeration" or kind == "optiongroup":
       if not "options" in param:
         print(f"error: kind {kind} needs an 'options' field with a list of option codes.")
@@ -316,7 +316,7 @@ display names from the vocabulary we fetched before.
 
 catalog applies to catalog kind.
 
-``
+`` #py
     if kind == "catalog":
       if not "catalog" in param:
         print(f"error: kind {kind} needs a 'catalog' field with its catalog code.")
@@ -331,7 +331,7 @@ catalog applies to catalog kind.
 
 exit the param-building loop, wrap and return.
 
-``../
+``../ #py
   return data_exchange(E.CatalogueData(item))
 ``
 
@@ -401,7 +401,12 @@ the param is apparently rendered as a flexible ref to a complex value.
 centraxx apparently puts in the german display name of the param.
 
 ``
-        flexref.append(E.FlexibleValueRef(param["code"], DisplayName=param_names_de[param["code"]])) 
+        displayname = ""
+        if param["code"] in param_names_de:
+          displayname = param_names_de[param["code"]]
+        else:
+          displayname = param["code"]
+        flexref.append(E.FlexibleValueRef(param["code"], DisplayName=displayname))
 ``
 
 required is standard false.
@@ -482,7 +487,8 @@ put in the parameters that are in the section.
         field = E.CrfTemplateField()
 
         # the display name german?
-        field.append(E.LaborValue(param["code"], DisplayName=param_names_de[param["code"]]))
+        displayname = param_names_de[param["code"]] if param["code"] in param_names_de else param["code"]
+        field.append(E.LaborValue(param["code"], DisplayName=displayname))
 
         field.append(E.LowerRow(str(i)))
         # we don't do columns, just set 0
