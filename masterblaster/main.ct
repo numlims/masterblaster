@@ -346,7 +346,7 @@ each messprofil. they contain the messparams. each
 come in the second half of the xml. they contain the layout with which
 the messparams are displayed.
 
-``/messprofil:
+``/messprofil: #py
 def messprofil(data, db:dbcq):
   catalogue_data = E.CatalogueData()
   ``.``
@@ -355,14 +355,14 @@ def messprofil(data, db:dbcq):
 
 get the names for messparameters, for later use.
 
-``
+`` #py
   trac = tr.traction(db)
   param_names_de = trac.names_by_codes("laborvalue", "de")
 ``
 
 loop over the profiles in the data.
 
-``
+`` #py
   for profil in data:
     ``.``
 ``
@@ -371,13 +371,13 @@ loop over the profiles in the data.
 
 first build the `FlexibleDatasetCatalogueItems` connecting each messprofil with its messparameters.
 
-``
+`` #py
     item = E.FlexibleDataSetCatalogueItem()
 ``
 
 put in the code and names.
 
-``
+`` #py
     item.append(E.Code(profil["code"]))
     item.append(multilingual("en", profil["name_en"]))
     item.append(multilingual("de", profil["name_de"]))
@@ -385,7 +385,7 @@ put in the code and names.
 
 put in the params.  we need the sections only for layout.
 
-``
+`` #py
     for section in profil["sections"]:
       for param in section["params"]:
         ``.``
@@ -393,14 +393,14 @@ put in the params.  we need the sections only for layout.
 
 the param is apparently rendered as a flexible ref to a complex value.
 
-``
+`` #py
         flexref = E.FlexibleValueComplexRefs()
         item.append(flexref)
 ``
 
 centraxx apparently puts in the german display name of the param.
 
-``
+`` #py
         displayname = ""
         if param["code"] in param_names_de:
           displayname = param_names_de[param["code"]]
@@ -411,7 +411,7 @@ centraxx apparently puts in the german display name of the param.
 
 required is standard false.
 
-``
+`` #py
         required = param["required"] if "required" in param else False
         flexref.append(E.Required(boolstring(required)))
 ``
@@ -421,7 +421,7 @@ finished putting in the params.
 say it's systemwide, a measurement and in category general. todo
 what's needed of that?
 
-``../
+``../ #py
     item.append(E.Systemwide("true"))
     item.append(E.FlexibleDataSetType("MEASUREMENT"))
     item.append(E.Category("GENERAL"))
@@ -434,7 +434,7 @@ this in the second part.
 the version needs to correspond to the version given later to the
 referenced `CrfTemplate`.
 
-``
+`` #py
     templateref = E.CrfTemplateRef()
     templateref.append(E.Name(profil["name_de"]))
     templateref.append(E.Version("1"))
@@ -443,7 +443,7 @@ referenced `CrfTemplate`.
 
 append the item.
 
-``
+`` #py
     catalogue_data.append(item)
 ``
 
@@ -456,14 +456,14 @@ we make it as simple as possible, a list of rows.
 
 the crf template seems to get the german name of the messprofil.
 
-``
+`` #py
     crf_template = E.CrfTemplate()
     crf_template.append(E.Name(profil["name_de"]))
 ``
 
 build the sections as given in the yaml.
 
-``
+`` #py
     for i_section, section in enumerate(profil["sections"]):
       crfsection = E.CrfTemplateSection()
       crf_template.append(crfsection)
@@ -472,7 +472,7 @@ build the sections as given in the yaml.
 
 fill in the name and the code of the section.
 
-``
+`` #py
       # take the code as the general name?
       crfsection.append(E.Name(section["code"]))
       crfsection.append(multilingual("en", section["name_en"]))
@@ -482,7 +482,7 @@ fill in the name and the code of the section.
 
 put in the parameters that are in the section.
 
-``
+`` #py
       for i, param in enumerate(section["params"]):
         field = E.CrfTemplateField()
 
@@ -516,7 +516,7 @@ put in the parameters that are in the section.
 give the section a standard width one, cause we only do a list.  give
 it as height the count of included messparams.
 
-``
+`` #py
       n = len(section["params"])
       crfsection.append(E.Height(str(n)))
       crfsection.append(E.Width(str(1)))
@@ -533,14 +533,14 @@ and a version. the version needs to correspond to the version given in
 the `CrfTemplateRef` referencing this `CrfTemplate`. add the `CrfTemplate`
 to the `CatalogData`.
 
-``../
+``../ #py
     crf_template.append(E.TemplateType("LABORMETHOD"))
     crf_template.append(E.Version("1")) # same version as in CrfTemplateRef
     catalogue_data.append(crf_template)
 ``
 imports for messprofil.
 
-``/import
+``/import #py
 import tr
 ``
 
@@ -550,14 +550,14 @@ import tr
 
 dataexchange generates the xml root.
 
-``/data-exchange:
+``/data-exchange: #py
 def data_exchange(child):
   ``.``
 ``
 
 fill it and put in the child.
 
-``
+`` #py
   dataexchange = E.CentraXXDataExchange()
   dataexchange.attrib['xmlns'] = "http://www.kairos-med.de"
   dataexchange.append(E.Source("CENTRAXX"))
@@ -569,7 +569,7 @@ fill it and put in the child.
 
 multilingual stitches together a multilingual entry.
 
-``/multilingual:
+``/multilingual: #py
 def multilingual(lang, value):
   e = E.NameMultilingualEntries()
   e.append(E.Lang(lang))
@@ -579,7 +579,7 @@ def multilingual(lang, value):
 
 boolstring turns a boolean to a string.
 
-``/boolstring:
+``/boolstring: #py
 def boolstring(b:bool):
   if not b:
     return "false"
